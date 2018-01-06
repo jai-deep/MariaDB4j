@@ -200,7 +200,6 @@ public class DB {
         File mysqldZip = new File(baseDir, "bin" + "/" + zip);
         if(mysqldZip.exists()) {
             extractFile(mysqldZip);
-            mysqldZip.setExecutable(true);
         }
     }
 
@@ -219,6 +218,7 @@ public class DB {
         bos.close();
         zipIn.closeEntry();
         zipIn.close();
+        new File(baseDir, "bin" + "/" + filePath).setExecutable(true);
     }
     
     protected File newExecutableFile(String dir, String exec) {
