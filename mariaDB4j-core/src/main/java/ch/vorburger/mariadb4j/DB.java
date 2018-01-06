@@ -21,12 +21,15 @@ package ch.vorburger.mariadb4j;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -169,6 +172,7 @@ public class DB {
     }
 
     synchronized ManagedProcess startPreparation() throws ManagedProcessException, IOException {
+        extractMysqldIfNeeded("bin", "mysqld.zip");
         ManagedProcessBuilder builder = new ManagedProcessBuilder(newExecutableFile("bin", "mysqld"));
         builder.setOutputStreamLogDispatcher(getOutputStreamLogDispatcher("mysqld"));
         builder.getEnvironment().put(configuration.getOSLibraryEnvironmentVarName(), libDir.getAbsolutePath());
@@ -192,6 +196,31 @@ public class DB {
         return builder.build();
     }
 
+    private void extractMysqldIfNeeded(String dir, String zip) throws IOException {
+        File mysqldZip = new File(baseDir, "bin" + "/" + zip);
+        if(mysqldZip.exists()) {
+            extractFile(mysqldZip);
+            mysqldZip.setExecutable(true);
+        }
+    }
+
+    private void extractFile(File zipFile) throws IOException {
+        File destDir = new File(zipFile.getParent());
+        ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFile.getPath()));
+        ZipEntry entry = zipIn.getNextEntry();
+        String filePath = destDir.getPath() + File.separator + entry.getName();
+
+        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(filePath));
+        byte[] bytesIn = new byte[1024];
+        int read = 0;
+        while ((read = zipIn.read(bytesIn)) != -1) {
+            bos.write(bytesIn, 0, read);
+        }
+        bos.close();
+        zipIn.closeEntry();
+        zipIn.close();
+    }
+    
     protected File newExecutableFile(String dir, String exec) {
         return new File(baseDir, dir + "/" + exec + getWinExeExt());
     }
